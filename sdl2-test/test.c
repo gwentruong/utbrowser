@@ -12,36 +12,41 @@ int main(int argc, char **argv)
     SDL_Window      *window    = NULL;
     SDL_Surface     *sdlsurf   = NULL;
     cairo_surface_t *cairosurf = NULL;
-    cairo_t         *cr;
+    cairo_t         *cr        = NULL;
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
         printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
     else
     {
-        window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+        window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED,
+                                  SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH,
+                                  SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
         if (window == NULL)
             printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
         else
         {
-            sdlsurf = SDL_GetWindowSurface(window);
-
-            cairosurf = cairo_image_surface_create_for_data(
-                sdlsurf->pixels,
-                CAIRO_FORMAT_RGB24,
-                sdlsurf->w,
-                sdlsurf->h,
-                sdlsurf->pitch);
+            sdlsurf   = SDL_GetWindowSurface(window);
+            cairosurf = cairo_image_surface_create_for_data(sdlsurf->pixels,
+                                                            CAIRO_FORMAT_RGB24,
+                                                            sdlsurf->w,
+                                                            sdlsurf->h,
+                                                            sdlsurf->pitch);
+            cr        = cairo_create(cairosurf);
 
             // Fill the surface white
-            SDL_FillRect(sdlsurf, NULL, SDL_MapRGB(sdlsurf->format, 0xFF, 0xFF, 0xFF));
+            // SDL_FillRect(sdlsurf, NULL, SDL_MapRGB(sdlsurf->format,
+                         // 0xFF, 0xFF, 0xFF));
 
-            cr = cairo_create(cairosurf);
+            cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+            cairo_paint(cr);
 
-            cairo_select_font_face(cr, "serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+            cairo_select_font_face(cr, "serif",
+                                   CAIRO_FONT_SLANT_NORMAL,
+                                   CAIRO_FONT_WEIGHT_BOLD);
             cairo_set_font_size(cr, 32.0);
             cairo_set_source_rgb(cr, 0.0, 0.0, 1.0);
             cairo_move_to(cr, 10.0, 50.0);
-            cairo_show_text(cr, "Hello, world");
+            cairo_show_text(cr, "Hello!... Yifan");
 
             SDL_UpdateWindowSurface(window);
 
@@ -66,6 +71,7 @@ int main(int argc, char **argv)
         }
     }
 
+    cairo_destroy(cr);
     cairo_surface_destroy(cairosurf);
     SDL_DestroyWindow(window);
 
