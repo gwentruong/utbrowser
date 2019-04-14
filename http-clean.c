@@ -10,10 +10,17 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <SDL.h>
+#include <cairo.h>
+#include <pango/pangocairo.h>
+
 #include "gumbo.h"
 
 #define PORT "80"
 #define MAX_LEN 16384
+
+const int SCREEN_WIDTH = 760;
+const int SCREEN_HEIGHT = 580;
 
 void remove_string (char text[], int index, int rm_length)
 {
@@ -77,6 +84,14 @@ int main(int argc, char **argv)
     int   n;
     void *addr;
     char buf[MAX_LEN] = { '\0' };     // Big buffer to append content of html
+
+    SDL_Window      *window    = NULL;
+    SDL_Surface     *sdlsurf   = NULL;
+    cairo_surface_t *cairosurf = NULL;
+    cairo_t         *cr        = NULL;
+    PangoLayout     *layout;
+    PangoFontDescription *font_description;
+    PangoLayoutLine *line;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family   = AF_UNSPEC;
@@ -174,7 +189,7 @@ int main(int argc, char **argv)
 
     while ((n = recv(sockfd, ptr, MAX_LEN, 0)) > 0)
     {
-        printf("Current length %ld\n", strlen(head));
+        // printf("Current length %ld\n", strlen(head));
 
         if (strlen(head) >= html_size)
         {
@@ -191,9 +206,95 @@ int main(int argc, char **argv)
     // printf("\n\n%s\n", buf);
 
     GumboOutput *output = gumbo_parse(buf);
-    printf("%s\n", cleantext(output->root));
+    const char *story = cleantext(output->root);
+    printf("%s\n", story);
 
-    printf("File is fetched successfully\n");
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+        printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+    else
+    {
+        window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED,
+                                  SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH,
+                                  SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+        if (window == NULL)
+            printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
+        else
+        {
+            sdlsurf   = SDL_GetWindowSurface(window);
+            cairosurf = cairo_image_surface_create_for_data(sdlsurf->pixels,
+                                                            CAIRO_FORMAT_RGB24,
+                                                            sdlsurf->w,
+                                                            sdlsurf->h,
+                                                            sdlsurf->pitch);
+            cr        = cairo_create(cairosurf);
+
+            cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+            cairo_paint(cr);
+
+            font_description = pango_font_description_new();
+            pango_font_description_set_family(font_description, "serif");
+            pango_font_description_set_weight(font_description, PANGO_WEIGHT_BOLD);
+            pango_font_description_set_absolute_size(font_description, 16 * PANGO_SCALE);
+
+            layout = pango_cairo_create_layout(cr);
+            pango_layout_set_width(layout, (sdlsurf->w - 40) * PANGO_SCALE);
+            pango_layout_set_height(layout, (sdlsurf->h - 60) * PANGO_SCALE);
+            pango_layout_set_spacing(layout, 10 * PANGO_SCALE);
+            pango_layout_set_justify(layout, TRUE);
+            pango_layout_set_font_description(layout, font_description);
+            pango_layout_set_text(layout, story, -1);
+
+            int line_count = pango_layout_get_line_count(layout);
+            printf("Line %d\n", line_count);
+            line = pango_layout_get_line(layout, line_count - 1);
+
+            cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+            cairo_move_to(cr, 20.0, 40.0);
+            pango_cairo_show_layout(cr, layout);
+
+            printf("width %d, height %d\n", pango_layout_get_width(layout),
+                                            pango_layout_get_height(layout));
+            SDL_UpdateWindowSurface(window);
+
+            SDL_Event e;
+            int quit = 0;
+            while (!quit)
+            {
+                while (SDL_PollEvent(&e))
+                {
+                    if (e.type == SDL_QUIT)
+                        quit = 1;
+
+                    if (e.type == SDL_KEYDOWN)
+                        quit = 1;
+
+                    if (e.type == SDL_MOUSEBUTTONDOWN)
+                    {
+                        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+                        cairo_paint(cr);
+
+                        pango_layout_set_text(layout,
+                            story + line->start_index + line->length, -1);
+
+                        cairo_set_source_rgb(cr, 0.0, 0.0, 1.0);
+                        cairo_move_to(cr, 20.0, 40.0);
+                        pango_cairo_show_layout(cr, layout);
+                        SDL_UpdateWindowSurface(window);
+                    }
+
+                    SDL_Delay(10);
+                }
+            }
+            g_object_unref(layout);
+            pango_font_description_free(font_description);
+        }
+    }
+
+    cairo_destroy(cr);
+    cairo_surface_destroy(cairosurf);
+    SDL_DestroyWindow(window);
+
+    SDL_Quit();
 
     gumbo_destroy_output(&kGumboDefaultOptions, output);
     return 0;
