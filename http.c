@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 {
     if (argc != 2)
     {
-        perror("Usage: send_file <IP address>");
+        perror("Usage: ./http <IP address>");
         return -1;
     }
 
