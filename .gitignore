@@ -4,3 +4,4 @@ a.c
 clean_text
 white.html
 cleantext
+*.dSYM/
