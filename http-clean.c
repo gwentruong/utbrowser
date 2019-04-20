@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 
             layout = pango_cairo_create_layout(cr);
             pango_layout_set_width(layout, (sdlsurf->w - 40) * PANGO_SCALE);
-            pango_layout_set_height(layout, (sdlsurf->h - 60) * PANGO_SCALE);
+            pango_layout_set_height(layout, (sdlsurf->h - 70) * PANGO_SCALE);
             pango_layout_set_spacing(layout, 10 * PANGO_SCALE);
             pango_layout_set_justify(layout, TRUE);
             pango_layout_set_font_description(layout, font_description);
