@@ -156,7 +156,7 @@ char *get_ip_addr(char *hostname)
     struct addrinfo hints, *servinfo, *p;
     int   status;
     void *addr;
-    char *ipstr = calloc(1, INET6_ADDRSTRLEN);
+    char *ipstr = calloc(INET6_ADDRSTRLEN, 1);
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family   = AF_UNSPEC;
@@ -189,7 +189,7 @@ char *get_content(char *request, char *ip_address)
     struct addrinfo hints, *servinfo, *p;
     int   sockfd;
     int   status, n;
-    char *buf = calloc(1, MAX_LEN);
+    char *buf = calloc(MAX_LEN, 1);
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family   = AF_UNSPEC;
@@ -281,7 +281,7 @@ char *get_content(char *request, char *ip_address)
             ptr += n;
         }
     }
-    
+
     // Remove extra text from header
     char *extra = strstr(buf, "<!DOCTYPE");
     remove_string(buf, 0, extra - buf - 1);

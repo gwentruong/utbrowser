@@ -1,18 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
 #include <string.h>
-#include <netdb.h>
-#include <libgen.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
-#include <SDL.h>
-#include <cairo.h>
-#include <pango/pangocairo.h>
 
 #include "gumbo.h"
 #include "utbrowser.h"
