@@ -25,7 +25,8 @@ const int SCREEN_HEIGHT = 580;
 
 void remove_string (char text[], int index, int rm_length);
 const char *cleantext(GumboNode* node);
-void display_pango(const char *story);
+char *get_content(char *request, char *ip_address);
+void diplay_graphic(const char *story);
 
 int main(int argc, char **argv)
 {
@@ -36,13 +37,10 @@ int main(int argc, char **argv)
     }
 
     struct addrinfo hints, *servinfo, *p;
-    int   sockfd;
     int   status;
     char  ipstr[INET6_ADDRSTRLEN];
     char *request = "GET / HTTP/1.1\r\nHost: www.savewalterwhite.com\r\n\r\n";
-    int   n;
     void *addr;
-    char buf[MAX_LEN] = { '\0' };     // Big buffer to append content of html
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family   = AF_UNSPEC;
@@ -67,100 +65,13 @@ int main(int argc, char **argv)
 
     freeaddrinfo(servinfo);
 
-    if ((status = getaddrinfo(ipstr, PORT, &hints, &servinfo)) != 0)
-    {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
-        return 1;
-    }
-
-    // Loop through all the results and bind to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next)
-    {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
-        {
-            perror("client: socket");
-            continue;
-        }
-
-        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1)
-        {
-            close(sockfd);
-            perror("client: connect");
-            continue;
-        }
-        break;
-    }
-
-    if (p == NULL)
-    {
-        fprintf(stderr, "client: failed to connect\n");
-        return 2;
-    }
-
-    freeaddrinfo(servinfo);
-
-    if (send(sockfd, request, strlen(request), 0) == -1)
-    {
-        perror("Can't send request to server");
-        return -1;
-    }
-    printf("Request to server sent!\n");
-
-    char *ptr = buf;
-    char *head = buf;
-    char length_str[16] = { '\0' };
-    int j = 0;
-    int i;
-    int got_num = 0;
-
-    n = recv(sockfd, ptr, MAX_LEN, 0);
-    ptr += n;
-
-    char *str_str = strstr(buf, "Content-Length");
-    for (i = 0; i < strlen(str_str); i++)
-    {
-        if (got_num == 0)
-        {
-            if (str_str[i] == ' ')
-                got_num = 1;
-        }
-        else
-        {
-            if (str_str[i] != '\r' || str_str[i] != '\n')
-            {
-                length_str[j] = str_str[i];
-                j++;
-            }
-            else
-                break;
-        }
-    }
-    int html_size = atoi(length_str);
-    printf("Size %d\n", html_size);
-
-    while ((n = recv(sockfd, ptr, MAX_LEN, 0)) > 0)
-    {
-        // printf("Current length %ld\n", strlen(head));
-
-        if (strlen(head) >= html_size)
-        {
-            close(sockfd);
-            break;
-        }
-        ptr += n;
-    }
-
-    // Remove extra text from header
-    char *extra = strstr(buf, "<!DOCTYPE");
-    remove_string(buf, 0, extra - buf - 1);
-
-    // printf("\n\n%s\n", buf);
+    char *buf = get_content(request, ipstr);
 
     GumboOutput *output = gumbo_parse(buf);
     const char *story = cleantext(output->root);
     printf("%s\n", story);
 
-    display_pango(story);
+    diplay_graphic(story);
 
     gumbo_destroy_output(&kGumboDefaultOptions, output);
     return 0;
@@ -212,7 +123,8 @@ const char *cleantext(GumboNode* node)
         return "";
 }
 
-void display_pango(const char *story)
+
+void diplay_graphic(const char *story)
 {
     SDL_Window      *window    = NULL;
     SDL_Surface     *sdlsurf   = NULL;
@@ -308,4 +220,107 @@ void display_pango(const char *story)
     SDL_DestroyWindow(window);
 
     SDL_Quit();
+}
+
+char *get_content(char *request, char *ip_address)
+{
+    struct addrinfo hints, *servinfo, *p;
+    int   sockfd;
+    int   status, n;
+    char *buf = calloc(1, MAX_LEN);
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family   = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+
+    if ((status = getaddrinfo(ip_address, PORT, &hints, &servinfo)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        return NULL;
+    }
+
+    // Loop through all the results and bind to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next)
+    {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+        {
+            perror("client: socket");
+            continue;
+        }
+
+        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1)
+        {
+            close(sockfd);
+            perror("client: connect");
+            continue;
+        }
+        break;
+    }
+
+    if (p == NULL)
+    {
+        fprintf(stderr, "client: failed to connect\n");
+        return NULL;
+    }
+
+    freeaddrinfo(servinfo);
+
+    if (send(sockfd, request, strlen(request), 0) == -1)
+    {
+        perror("Can't send request to server");
+        return NULL;
+    }
+    printf("Request to server sent!\n");
+
+    char *ptr = buf;
+    char *head = buf;
+    char length_str[16] = { '\0' };
+    int j = 0;
+    int i;
+    int got_num = 0;
+
+    n = recv(sockfd, ptr, MAX_LEN, 0);
+    ptr += n;
+
+    char *str_str = strstr(buf, "Content-Length");
+    for (i = 0; i < 32; i++)
+    {
+        if (got_num == 0)
+        {
+            if (str_str[i] == ':')
+                got_num = 1;
+        }
+        else
+        {
+            if (!(str_str[i] == '\r' || str_str[i] == '\n'))
+            {
+                if (str_str[i] != ' ')
+                {
+                    length_str[j] = str_str[i];
+                    j++;
+                }
+            }
+            else
+                break;
+        }
+    }
+    int html_size = atoi(length_str);
+    printf("Size %d\n", html_size);
+
+    while ((n = recv(sockfd, ptr, MAX_LEN, 0)) > 0)
+    {
+        if (strlen(head) >= html_size)
+        {
+            close(sockfd);
+            break;
+        }
+        ptr += n;
+    }
+
+    // Remove extra text from header
+    char *extra = strstr(buf, "<!DOCTYPE");
+    remove_string(buf, 0, extra - buf - 1);
+
+    return buf;
 }
