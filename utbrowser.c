@@ -25,6 +25,7 @@ const int SCREEN_HEIGHT = 580;
 
 void remove_string (char text[], int index, int rm_length);
 const char *cleantext(GumboNode* node);
+char *get_ip_addr(char *hostname);
 char *get_content(char *request, char *ip_address);
 void diplay_graphic(const char *story);
 
@@ -36,36 +37,40 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    struct addrinfo hints, *servinfo, *p;
-    int   status;
-    char  ipstr[INET6_ADDRSTRLEN];
+    // struct addrinfo hints, *servinfo, *p;
+    // int   status;
+    // char  ipstr[INET6_ADDRSTRLEN];
     char *request = "GET / HTTP/1.1\r\nHost: www.savewalterwhite.com\r\n\r\n";
-    void *addr;
+    // void *addr;
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family   = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
+    // memset(&hints, 0, sizeof hints);
+    // hints.ai_family   = AF_UNSPEC;
+    // hints.ai_socktype = SOCK_STREAM;
+    //
+    // if ((status = getaddrinfo(argv[1], NULL, &hints, &servinfo)) != 0)
+    // {
+    //     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+    //     return 2;
+    // }
+    // printf("IP addresses for %s:\n\n", argv[1]);
+    //
+    // for (p = servinfo; p != NULL; p = p->ai_next)
+    // {
+    //     struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+    //     addr  = &(ipv4->sin_addr);
+    //
+    //     inet_ntop(p->ai_family, addr, ipstr, sizeof(ipstr));
+    //     printf("\t%s\n", ipstr);        // Got IP address
+    //     break;
+    // }
+    //
+    // freeaddrinfo(servinfo);
 
-    if ((status = getaddrinfo(argv[1], NULL, &hints, &servinfo)) != 0)
-    {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
-        return 2;
-    }
-    printf("IP addresses for %s:\n\n", argv[1]);
-
-    for (p = servinfo; p != NULL; p = p->ai_next)
-    {
-        struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
-        addr  = &(ipv4->sin_addr);
-
-        inet_ntop(p->ai_family, addr, ipstr, sizeof(ipstr));
-        printf("\t%s\n", ipstr);        // Got IP address
-        break;
-    }
-
-    freeaddrinfo(servinfo);
+    char *ipstr = get_ip_addr(argv[1]);
 
     char *buf = get_content(request, ipstr);
+    if (buf == NULL)
+        return -1;
 
     GumboOutput *output = gumbo_parse(buf);
     const char *story = cleantext(output->root);
@@ -220,6 +225,38 @@ void diplay_graphic(const char *story)
     SDL_DestroyWindow(window);
 
     SDL_Quit();
+}
+char *get_ip_addr(char *hostname)
+{
+    struct addrinfo hints, *servinfo, *p;
+    int   status;
+    void *addr;
+    char *ipstr = calloc(1, INET6_ADDRSTRLEN + 1);
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family   = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((status = getaddrinfo(hostname, NULL, &hints, &servinfo)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        return NULL;
+    }
+    printf("IP addresses for %s:\n\n", hostname);
+
+    for (p = servinfo; p != NULL; p = p->ai_next)
+    {
+        struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+        addr  = &(ipv4->sin_addr);
+
+        inet_ntop(p->ai_family, addr, ipstr, INET6_ADDRSTRLEN);
+        printf("\t%s\n", ipstr);        // Got IP address
+        break;
+    }
+
+    freeaddrinfo(servinfo);
+
+    return ipstr;
 }
 
 char *get_content(char *request, char *ip_address)
