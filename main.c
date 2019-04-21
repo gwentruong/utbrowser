@@ -17,9 +17,6 @@
 #include "gumbo.h"
 #include "utbrowser.h"
 
-#define PORT "80"
-#define MAX_LEN 16384
-
 const int SCREEN_WIDTH = 760;
 const int SCREEN_HEIGHT = 580;
 
@@ -51,6 +48,8 @@ int main(int argc, char **argv)
 
     diplay_graphic(story);
 
+    free(ipstr);
+    free(buf);
     gumbo_destroy_output(&kGumboDefaultOptions, output);
     return 0;
 }
@@ -269,16 +268,20 @@ char *get_content(char *request, char *ip_address)
     int html_size = atoi(length_str);
     printf("Size %d\n", html_size);
 
-    while ((n = recv(sockfd, ptr, MAX_LEN, 0)) > 0)
+    if (strlen(head) < html_size)
     {
-        if (strlen(head) >= html_size)
+        buf = realloc(buf, sizeof(buf) + MAX_LEN);
+        while ((n = recv(sockfd, ptr, MAX_LEN, 0)) > 0)
         {
-            close(sockfd);
-            break;
+            if (strlen(head) >= html_size)
+            {
+                close(sockfd);
+                break;
+            }
+            ptr += n;
         }
-        ptr += n;
     }
-
+    
     // Remove extra text from header
     char *extra = strstr(buf, "<!DOCTYPE");
     remove_string(buf, 0, extra - buf - 1);
